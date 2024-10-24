@@ -1,0 +1,26 @@
+{
+    "sourceFile": "google.js",
+    "activeCommit": 0,
+    "commits": [
+        {
+            "activePatchIndex": 2,
+            "patches": [
+                {
+                    "date": 1729795896869,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n"
+                },
+                {
+                    "date": 1729796872996,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -0,0 +1,31 @@\n+function onFormSubmit(e) {\r\n+    // Get the form data as a named values object\r\n+    var formData = e.namedValues;\r\n+  \r\n+    // Prepare the payload with the specific fields\r\n+    var payload = {\r\n+      'fname': formData['First Name'][0],   // Replace 'First Name' with your actual question title in the form\r\n+      'lname': formData['Last Name'][0],    // Replace 'Last Name' with your actual question title in the form\r\n+      'company': formData['Company'][0],    // Replace 'Company' with your actual question title in the form\r\n+      'contact': formData['Contact'][0]      // Replace 'Contact' with your actual question title in the form\r\n+    };\r\n+  \r\n+    // Set up the request options\r\n+    var options = {\r\n+      'method': 'post',\r\n+      'contentType': 'application/json',\r\n+      'payload': JSON.stringify(payload)\r\n+    };\r\n+  \r\n+    // Send the AJAX request to the Flask app\r\n+    UrlFetchApp.fetch('https://talented-positively-tadpole.ngrok-free.app/submit', options); // Add the /submit endpoint\r\n+  }\r\n+  \r\n+  function setupTriggerFormSubmit() {\r\n+    var ss = SpreadsheetApp.getActive();\r\n+    ScriptApp.newTrigger('onFormSubmit')\r\n+      .forSpreadsheet(ss)\r\n+      .onFormSubmit()\r\n+      .create();\r\n+  }\r\n+  \n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1729796886461,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -17,9 +17,9 @@\n       'payload': JSON.stringify(payload)\r\n     };\r\n   \r\n     // Send the AJAX request to the Flask app\r\n-    UrlFetchApp.fetch('https://talented-positively-tadpole.ngrok-free.app/submit', options); // Add the /submit endpoint\r\n+    UrlFetchApp.fetch('https://4323-50-227-148-194.ngrok-free.app', options); // Add the /submit endpoint\r\n   }\r\n   \r\n   function setupTriggerFormSubmit() {\r\n     var ss = SpreadsheetApp.getActive();\r\n@@ -27,41 +27,5 @@\n       .forSpreadsheet(ss)\r\n       .onFormSubmit()\r\n       .create();\r\n   }\r\n-  \n-function onFormSubmit(e) {\r\n-  // Get the form responses\r\n-  const responses = e.values; // This returns an array of responses\r\n-  const fname = responses[1];  // Adjust index based on your form structure\r\n-  const lname = responses[2];\r\n-  const company = responses[3];\r\n-  const contact = responses[4];\r\n-\r\n-  // Prepare the AJAX request to your Flask app\r\n-  const url = ' https://4323-50-227-148-194.ngrok-free.app/submit'; // Replace with your Ngrok URL\r\n-\r\n-  const payload = {\r\n-    'fname': fname,\r\n-    'lname': lname,\r\n-    'company': company,\r\n-    'contact': contact\r\n-  };\r\n-\r\n-  const options = {\r\n-    'method': 'POST',\r\n-    'contentType': 'application/json',\r\n-    'payload': JSON.stringify(payload)\r\n-  };\r\n-\r\n-  // Send the AJAX request\r\n-  UrlFetchApp.fetch(url, options);\r\n-}\r\n-\r\n-// Create a trigger for form submission\r\n-function createTrigger() {\r\n-  const form = FormApp.openById('YOUR_FORM_ID'); // Replace with your Google Form ID\r\n-  ScriptApp.newTrigger('onFormSubmit')\r\n-    .forForm(form)\r\n-    .onFormSubmit()\r\n-    .create();\r\n-}\n\\ No newline at end of file\n+  \n\\ No newline at end of file\n"
+                }
+            ],
+            "date": 1729795896869,
+            "name": "Commit-0",
+            "content": "function onFormSubmit(e) {\r\n  // Get the form responses\r\n  const responses = e.values; // This returns an array of responses\r\n  const fname = responses[1];  // Adjust index based on your form structure\r\n  const lname = responses[2];\r\n  const company = responses[3];\r\n  const contact = responses[4];\r\n\r\n  // Prepare the AJAX request to your Flask app\r\n  const url = ' https://4323-50-227-148-194.ngrok-free.app/submit'; // Replace with your Ngrok URL\r\n\r\n  const payload = {\r\n    'fname': fname,\r\n    'lname': lname,\r\n    'company': company,\r\n    'contact': contact\r\n  };\r\n\r\n  const options = {\r\n    'method': 'POST',\r\n    'contentType': 'application/json',\r\n    'payload': JSON.stringify(payload)\r\n  };\r\n\r\n  // Send the AJAX request\r\n  UrlFetchApp.fetch(url, options);\r\n}\r\n\r\n// Create a trigger for form submission\r\nfunction createTrigger() {\r\n  const form = FormApp.openById('YOUR_FORM_ID'); // Replace with your Google Form ID\r\n  ScriptApp.newTrigger('onFormSubmit')\r\n    .forForm(form)\r\n    .onFormSubmit()\r\n    .create();\r\n}\r\n\r\n"
+        }
+    ]
+}
