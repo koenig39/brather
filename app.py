@@ -1,7 +1,8 @@
-from flask import Flask, render_template, request, redirect, url_for, send_file, flash
+from flask import Flask, render_template, request, redirect, url_for, send_file, flash, Response
 from peewee import *
 from datetime import datetime
-import subprocess, os
+import subprocess, os, csv, base64, io, qrcode
+from PIL import Image, ImageDraw, ImageFont
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)  # Generates a random 24-byte key
@@ -41,19 +42,36 @@ class PersonEvent(BaseModel):
         database = sqlite_db
         primary_key = CompositeKey('person', 'event')
 
-sqlite_db.connect()
-sqlite_db.create_tables([Person, Event, PersonEvent])
+class Settings(BaseModel):
+    id = AutoField()
+    descr = CharField()
+    var_name = CharField(unique=True)
+    value = CharField()
 
 
-import base64, io
-from PIL import Image, ImageDraw, ImageFont
+
+
+
+
+
+def get_setting(var_name):
+    setting = Settings.get_or_none(Settings.var_name == var_name)
+    return setting.value if setting else None
 
 def create_conference_badge(fname, lname, company):
-    # Load the original background image
-    template_path = 'template_badge.bmp'  # Replace with the path to your template image
-    badge = Image.open(template_path)
-    width, height = badge.size
+    # Retrieve settings
+    template_name = get_setting("template_name")
+    template_path = f'static/{template_name}'
 
+    # Try to load the template image, handling the case if the file is not found
+    try:
+        badge = Image.open(template_path)
+    except FileNotFoundError:
+        # Generate a placeholder image with an error message
+        badge = Image.new('RGB', (500, 300), color=(255, 255, 255))
+        draw = ImageDraw.Draw(badge)
+        draw.text((10, 150), "Template file not found", fill=(255, 0, 0))
+    
     # Set up drawing context
     draw = ImageDraw.Draw(badge)
 
@@ -62,7 +80,6 @@ def create_conference_badge(fname, lname, company):
         font_large = ImageFont.truetype("arial.ttf", 96)
         font_small = ImageFont.truetype("arial.ttf", 56)
     except IOError:
-        # Fallback to default font if specific font not found
         font_large = ImageFont.load_default()
         font_small = ImageFont.load_default()
 
@@ -71,24 +88,67 @@ def create_conference_badge(fname, lname, company):
     company_text = company
     text_color = (0, 0, 0)  # Black
 
-    # Calculate centered positions based on text bounding box (using textbbox)
-    name_bbox = draw.textbbox((0, 0), name_text, font=font_large)
-    name_position = ((width - (name_bbox[2] - name_bbox[0])) // 2, 150)
-
-    company_bbox = draw.textbbox((0, 0), company_text, font=font_small)
-    company_position = ((width - (company_bbox[2] - company_bbox[0])) // 2, 370)
+    # Get coordinates from settings
+    fname_x = int(get_setting("fname_x") or 10)
+    fname_y = int(get_setting("fname_y") or 10)
+    lname_x = int(get_setting("lname_x") or 10)
+    lname_y = int(get_setting("lname_y") or 50)
+    company_x = int(get_setting("company_x") or 10)
+    company_y = int(get_setting("company_y") or 100)
 
     # Draw the text on the badge
-    draw.text(name_position, name_text, fill=text_color, font=font_large)
-    draw.text(company_position, company_text, fill=text_color, font=font_small)
+    draw.text((fname_x, fname_y), name_text, fill=text_color, font=font_large)
+    draw.text((company_x, company_y), company_text, fill=text_color, font=font_small)
 
-    # Save the image to an in-memory file and encode it as base64
+    # Save the image to an in-memory file and return it
     image_io = io.BytesIO()
     badge.save(image_io, 'PNG')
     image_io.seek(0)
-    base64_image = base64.b64encode(image_io.getvalue()).decode('utf-8')
+    return image_io  # Return as an in-memory file
 
-    return base64_image
+
+
+
+
+@app.route('/download_event_attendees/<int:event_id>')
+def download_event_attendees(event_id):
+    # Retrieve the event and its attendees
+    event = Event.get_or_none(Event.id == event_id)
+    if not event:
+        return "Event not found", 404
+
+    # Fetch the attendees through the association table
+    attendees = (Person
+                 .select()
+                 .join(PersonEvent)
+                 .where(PersonEvent.event == event_id))
+
+    # Debugging print statements
+    print(f"Event: {event.name}")
+    print(f"Number of Attendees: {attendees.count()}")
+    
+    # Generate CSV data
+    def generate():
+        data = io.StringIO()
+        writer = csv.writer(data)
+        
+        # Write the header
+        writer.writerow(['First Name', 'Last Name', 'Company', 'Contact'])
+        yield data.getvalue()
+        data.seek(0)
+        data.truncate(0)
+        
+        # Write the attendee rows
+        for person in attendees:
+            writer.writerow([person.fname, person.lname, person.company, person.contact])
+            yield data.getvalue()
+            data.seek(0)
+            data.truncate(0)
+
+    # Return the CSV as a response
+    response = Response(generate(), mimetype='text/csv')
+    response.headers.set("Content-Disposition", "attachment", filename=f"{event.name}_attendees.csv")
+    return response
 
 @app.route('/person_card_view')
 def person_card_view():
@@ -109,6 +169,24 @@ def activate_event(event_id):
     
     flash("Event activated successfully.")
     return redirect(url_for('events_list'))
+
+
+
+@app.route('/qr_code/<int:event_id>')
+def qr_code(event_id):
+    # Generate the URL for the event details page
+    event_url = url_for('event_detail', event_id=event_id, _external=True)
+    
+    # Create a QR code for the URL
+    qr = qrcode.make(event_url)
+    
+    # Save the QR code image in an in-memory file
+    img_io = io.BytesIO()
+    qr.save(img_io, 'PNG')
+    img_io.seek(0)
+    
+    return send_file(img_io, mimetype='image/png')
+
 
 
 @app.route('/generate_badge/<int:person_id>')
@@ -132,11 +210,13 @@ def person_card():
     lname = "Doe"
     company = "Company LLC"
 
-    # Generate the badge as an in-memory image file
+    # Generate the badge image and encode it as base64
     image_file = create_conference_badge(fname, lname, company)
+    base64_image = base64.b64encode(image_file.getvalue()).decode('utf-8')
 
-    # Send the image file directly to the browser
-    return send_file(image_file, mimetype='image/png')
+    return base64_image  # Returning the base64 image string
+
+
 
 
 @app.route('/print_badge/<int:person_id>')
@@ -289,12 +369,34 @@ def event_detail(event_id):
         return "Event not found", 404
 
 
+@app.route('/settings', methods=['GET', 'POST'])
+def view_settings():
+    if request.method == 'POST':
+        for setting in Settings.select():
+            new_value = request.form.get(setting.var_name)
+            if new_value is not None:
+                setting.value = new_value
+                setting.save()
+        flash("Settings updated successfully.")
+        return redirect(url_for('view_settings'))
+    
+    # Fetch all settings for display
+    settings = Settings.select()
+    
+    # Generate the sample person card image as base64
+    person_card_image = person_card()
+
+    return render_template('settings.html', settings=settings, person_card_image=person_card_image)
+
+
+
+
 
 
 @app.route('/reset')
 def reset():
     # List of all models
-    models = [Person, Event, PersonEvent]
+    models = [Person, Event, PersonEvent, Settings]
 
     # Drop all tables
     sqlite_db.connect()
@@ -303,6 +405,21 @@ def reset():
     # Recreate all tables
     sqlite_db.create_tables(models)
 
+    default_settings = [
+    {"descr": "Printer IP Address", "var_name": "printer_ip", "value": "10.4.6.76"},
+    {"descr": "Proxy Address", "var_name": "proxy_addr", "value": "proxy.example.com"},
+    {"descr": "Template Image Name", "var_name": "template_name", "value": "template_badge.bmp"},
+    {"descr": "First Name X Coordinate", "var_name": "fname_x", "value": "550"},
+    {"descr": "First Name Y Coordinate", "var_name": "fname_y", "value": "150"},
+    {"descr": "Last Name X Coordinate", "var_name": "lname_x", "value": "550"},
+    {"descr": "Last Name Y Coordinate", "var_name": "lname_y", "value": "250"},
+    {"descr": "Company X Coordinate", "var_name": "company_x", "value": "550"},
+    {"descr": "Company Y Coordinate", "var_name": "company_y", "value": "370"},
+    ]
+
+    # Insert default settings if not present
+    for setting in default_settings:
+        Settings.get_or_create(var_name=setting["var_name"], defaults=setting)
 
 
 

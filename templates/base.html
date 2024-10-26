@@ -1,39 +1,42 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
     <title>{% block title %}My App{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
-<body class="bg-gray-900 text-gray-100 p-8">
-    <nav class="mb-8 flex items-center space-x-4">
-        <!-- Display Logo -->
-        <img src="{{ url_for('static', filename='logo.png') }}" alt="BroM Logo" width="100" height="100" class="mr-4">
-        
-        <!-- Navigation Links with Toxic Colors -->
-        <ul class="flex space-x-4">
-            <li><a href="{{ url_for('events_list') }}" class="text-green-400 hover:text-pink-500">Events List</a></li>
-            <li><a href="{{ url_for('create_event') }}" class="text-green-400 hover:text-pink-500">Create Event</a></li>
-            <li><a href="{{ url_for('register') }}" class="text-green-400 hover:text-pink-500">Register Person</a></li>
-            <li><a href="{{ url_for('persons_list') }}" class="text-green-400 hover:text-pink-500">Persons List</a></li>
-            <li><a href="{{ url_for('person_card_view') }}" class="text-green-400 hover:text-pink-500">Generate Person Card</a></li>
-        </ul>
-    </nav>
+<body class="bg-gray-900 text-gray-100 min-h-screen flex">
+    <!-- Left Sidebar Menu -->
+    <aside class="w-1/4 p-4 bg-gray-800">
+        <nav>
+            <ul class="space-y-4">
+                <li><a href="{{ url_for('events_list') }}">Events List</a></li>
+                <li><a href="{{ url_for('create_event') }}">Create Event</a></li>
+                <li><a href="{{ url_for('register') }}">Register Person</a></li>
+                <li><a href="{{ url_for('persons_list') }}">Persons List</a></li>
+                <li><a href="{{ url_for('view_settings') }}">Settings</a></li>
+            </ul>
+        </nav>
+    </aside>
 
-    <!-- Flash Messages Section -->
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            <div class="mb-4">
-                {% for message in messages %}
-                    <div class="bg-green-600 text-white px-4 py-2 rounded mb-2">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            </div>
-        {% endif %}
-    {% endwith %}
+    <!-- Main Content Area -->
+    <main class="flex-1 p-6">
+        <!-- Flash Messages Section -->
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="mb-4">
+                    {% for message in messages %}
+                        <div class="bg-indigo-500 text-white px-4 py-2 rounded mb-2">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
 
-    <div class="container mx-auto">
-        {% block content %}{% endblock %}
-    </div>
+        <!-- Page Content Block -->
+        <div>
+            {% block content %}{% endblock %}
+        </div>
+    </main>
 </body>
 </html>

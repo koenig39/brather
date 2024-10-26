@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold mb-4">Settings</h1>
+
+<!-- Display the generated person card image -->
+<div class="mb-8">
+    <h2 class="text-lg font-semibold mb-2">Sample Person Card</h2>
+    <img src="data:image/png;base64,{{ person_card_image }}" alt="Person Card" class="border border-gray-700 rounded-lg shadow-lg mt-4">
+</div>
+
+<form method="POST" action="{{ url_for('view_settings') }}">
+    <table class="min-w-full bg-gray-800 text-gray-100">
+        <thead>
+            <tr>
+                <th class="px-4 py-2 border-b border-gray-700">Description</th>
+                <th class="px-4 py-2 border-b border-gray-700">Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for setting in settings %}
+                <tr>
+                    <td class="border-t border-gray-700 px-4 py-2">{{ setting.descr }}</td>
+                    <td class="border-t border-gray-700 px-4 py-2">
+                        <input type="text" name="{{ setting.var_name }}" value="{{ setting.value }}" class="bg-gray-900 text-gray-100 px-2 py-1 rounded">
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <button type="submit" class="mt-4 bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Save Changes</button>
+</form>
+{% endblock %}
