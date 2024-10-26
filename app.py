@@ -45,41 +45,58 @@ sqlite_db.connect()
 sqlite_db.create_tables([Person, Event, PersonEvent])
 
 
+import base64, io
 from PIL import Image, ImageDraw, ImageFont
 
 def create_conference_badge(fname, lname, company):
-    # Load the original template image and scale it to full size
-    original_template = Image.open('template_badge.bmp')  # Replace with your actual template file path
-    width, height = original_template.size
-    badge = original_template.resize((width, height))
+    # Load the original background image
+    template_path = 'template_badge.bmp'  # Replace with the path to your template image
+    badge = Image.open(template_path)
+    width, height = badge.size
 
-    # Set text properties
+    # Set up drawing context
     draw = ImageDraw.Draw(badge)
 
-    # Define the font and size
-    name_font = ImageFont.truetype("arial.ttf", 72)  # Adjust path and size as needed
-    company_font = ImageFont.truetype("arial.ttf", 48)
+    # Load fonts (adjust paths if needed)
+    try:
+        font_large = ImageFont.truetype("arial.ttf", 96)
+        font_small = ImageFont.truetype("arial.ttf", 56)
+    except IOError:
+        # Fallback to default font if specific font not found
+        font_large = ImageFont.load_default()
+        font_small = ImageFont.load_default()
 
-    # Define text content and positions
+    # Define text and colors
     name_text = f"{fname} {lname}"
     company_text = company
+    text_color = (0, 0, 0)  # Black
 
-    # Define positions for name and company text (adjust as needed)
-    name_position = (int(width * 0.3), int(height * 0.4))  # Approximate position for name
-    company_position = (int(width * 0.3), int(height * 0.6))  # Approximate position for company
+    # Calculate centered positions based on text bounding box (using textbbox)
+    name_bbox = draw.textbbox((0, 0), name_text, font=font_large)
+    name_position = ((width - (name_bbox[2] - name_bbox[0])) // 2, 150)
 
-    # Define colors for the text
-    name_color = (0, 0, 0)  # Black
-    company_color = (80, 80, 80)  # Dark grey
+    company_bbox = draw.textbbox((0, 0), company_text, font=font_small)
+    company_position = ((width - (company_bbox[2] - company_bbox[0])) // 2, 370)
 
     # Draw the text on the badge
-    draw.text(name_position, name_text, fill=name_color, font=name_font)
-    draw.text(company_position, company_text, fill=company_color, font=company_font)
+    draw.text(name_position, name_text, fill=text_color, font=font_large)
+    draw.text(company_position, company_text, fill=text_color, font=font_small)
 
-    # Save the badge to a file
-    badge_file = 'conference_badge.png'
-    badge.save(badge_file)
-    return badge_file
+    # Save the image to an in-memory file and encode it as base64
+    image_io = io.BytesIO()
+    badge.save(image_io, 'PNG')
+    image_io.seek(0)
+    base64_image = base64.b64encode(image_io.getvalue()).decode('utf-8')
+
+    return base64_image
+
+@app.route('/person_card_view')
+def person_card_view():
+    # Generate the badge image as a base64 string
+    base64_image = create_conference_badge("John", "Doe", "Company LLC")
+
+    # Pass the base64 image to the template
+    return render_template('person_card_view.html', base64_image=base64_image)
 
 
 @app.route('/activate_event/<int:event_id>')
@@ -108,7 +125,18 @@ def generate_badge(person_id):
     return send_file(badge_file, as_attachment=True, download_name=f"{person.fname}_{person.lname}_badge.png")
 
 
+@app.route('/person_card')
+def person_card():
+    # Sample data for the person card
+    fname = "John"
+    lname = "Doe"
+    company = "Company LLC"
 
+    # Generate the badge as an in-memory image file
+    image_file = create_conference_badge(fname, lname, company)
+
+    # Send the image file directly to the browser
+    return send_file(image_file, mimetype='image/png')
 
 
 @app.route('/print_badge/<int:person_id>')

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Person Card{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold mb-4">Person Card</h1>
+<p>This is a generated person card for John Doe at Company LLC.</p>
+
+<!-- Display the generated badge image -->
+<img src="data:image/png;base64,{{ base64_image }}" alt="Person Card" class="border border-gray-700 rounded-lg shadow-lg mt-4">
+
+<a href="{{ url_for('events_list') }}" class="text-blue-400 hover:text-blue-600 mt-6 block">Back to Events</a>
+{% endblock %}

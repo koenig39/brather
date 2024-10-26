@@ -5,12 +5,17 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-900 text-gray-100 p-8">
-    <nav class="mb-8">
+    <nav class="mb-8 flex items-center space-x-4">
+        <!-- Display Logo -->
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="BroM Logo" width="100" height="100" class="mr-4">
+        
+        <!-- Navigation Links with Toxic Colors -->
         <ul class="flex space-x-4">
-            <li><a href="{{ url_for('events_list') }}" class="text-blue-400 hover:text-blue-600">Events List</a></li>
-            <li><a href="{{ url_for('create_event') }}" class="text-blue-400 hover:text-blue-600">Create Event</a></li>
-            <li><a href="{{ url_for('register') }}" class="text-blue-400 hover:text-blue-600">Register Person</a></li>
-            <li><a href="{{ url_for('persons_list') }}" class="text-blue-400 hover:text-blue-600">Persons List</a></li>
+            <li><a href="{{ url_for('events_list') }}" class="text-green-400 hover:text-pink-500">Events List</a></li>
+            <li><a href="{{ url_for('create_event') }}" class="text-green-400 hover:text-pink-500">Create Event</a></li>
+            <li><a href="{{ url_for('register') }}" class="text-green-400 hover:text-pink-500">Register Person</a></li>
+            <li><a href="{{ url_for('persons_list') }}" class="text-green-400 hover:text-pink-500">Persons List</a></li>
+            <li><a href="{{ url_for('person_card_view') }}" class="text-green-400 hover:text-pink-500">Generate Person Card</a></li>
         </ul>
     </nav>
 
