@@ -64,29 +64,31 @@ def create_conference_badge(fname, lname, company):
     template_name = get_setting("template_name")
     template_path = f'static/{template_name}'
 
+    # Load fonts (adjust paths if needed)
+    try:
+        font_large = ImageFont.truetype("roboto.ttf", 96)
+        font_small = ImageFont.truetype("arial.ttf", 24)
+    except IOError:
+        font_large = ImageFont.load_default()
+        font_small = ImageFont.load_default()
+
     # Check if template file exists
     if os.path.exists(template_path):
         # Load the template image
         badge = Image.open(template_path)
     else:
         # Create a new image from scratch if template is missing
-        badge = Image.new('RGB', (400, 300), color=(255, 255, 255))  # White background
+        badge = Image.new('RGB', (1100, 600), color=(255, 255, 255))  # White background
         draw = ImageDraw.Draw(badge)
         
         # Adding placeholder text for missing template
-        draw.text((10, 10), "Template Missing", fill=(255, 0, 0))
-        draw.line((0, 40, 400, 40), fill=(0, 0, 0), width=1)  # Line separator
+        # draw.text((10, 10), "Template \nMissing", fill=(255, 0, 0), font=font_large)
+        draw.line((0, 400, 800, 400), fill=(0, 0, 0), width=1)  # Line separator
 
     # Set up drawing context for the badge content
     draw = ImageDraw.Draw(badge)
 
-    # Load fonts (adjust paths if needed)
-    try:
-        font_large = ImageFont.truetype("arial.ttf", 36)
-        font_small = ImageFont.truetype("arial.ttf", 24)
-    except IOError:
-        font_large = ImageFont.load_default()
-        font_small = ImageFont.load_default()
+    
 
     # Define colors
     text_color = (0, 0, 0)  # Black
@@ -103,7 +105,6 @@ def create_conference_badge(fname, lname, company):
     draw.text((fname_x, fname_y), fname, fill=text_color, font=font_large)
     draw.text((lname_x, lname_y), lname, fill=text_color, font=font_large)
     draw.text((company_x, company_y), company, fill=text_color, font=font_small)
-    badge.show()
     # Save the image to an in-memory file
     image_io = io.BytesIO()
     badge.save(image_io, 'PNG')
