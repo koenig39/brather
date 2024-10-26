@@ -13,6 +13,11 @@
     <img src="{{ url_for('qr_code', event_id=event.id) }}" alt="Event QR Code" class="border border-gray-700 rounded-lg shadow-lg mt-4">
 </div>
 
+<!-- Download Attendees as CSV Link -->
+<a href="{{ url_for('download_event_attendees', event_id=event.id) }}" class="text-blue-400 hover:text-blue-600 mb-6 inline-block">
+    Download Attendees as CSV
+</a>
+
 <h2 class="text-2xl font-semibold mb-4">Registered Attendees</h2>
 {% if attendees %}
     <table class="min-w-full bg-gray-800 text-gray-100">

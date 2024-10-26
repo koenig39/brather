@@ -58,53 +58,59 @@ def get_setting(var_name):
     setting = Settings.get_or_none(Settings.var_name == var_name)
     return setting.value if setting else None
 
+
 def create_conference_badge(fname, lname, company):
     # Retrieve settings
     template_name = get_setting("template_name")
     template_path = f'static/{template_name}'
 
-    # Try to load the template image, handling the case if the file is not found
-    try:
+    # Check if template file exists
+    if os.path.exists(template_path):
+        # Load the template image
         badge = Image.open(template_path)
-    except FileNotFoundError:
-        # Generate a placeholder image with an error message
-        badge = Image.new('RGB', (500, 300), color=(255, 255, 255))
+    else:
+        # Create a new image from scratch if template is missing
+        badge = Image.new('RGB', (400, 300), color=(255, 255, 255))  # White background
         draw = ImageDraw.Draw(badge)
-        draw.text((10, 150), "Template file not found", fill=(255, 0, 0))
-    
-    # Set up drawing context
+        
+        # Adding placeholder text for missing template
+        draw.text((10, 10), "Template Missing", fill=(255, 0, 0))
+        draw.line((0, 40, 400, 40), fill=(0, 0, 0), width=1)  # Line separator
+
+    # Set up drawing context for the badge content
     draw = ImageDraw.Draw(badge)
 
     # Load fonts (adjust paths if needed)
     try:
-        font_large = ImageFont.truetype("arial.ttf", 96)
-        font_small = ImageFont.truetype("arial.ttf", 56)
+        font_large = ImageFont.truetype("arial.ttf", 36)
+        font_small = ImageFont.truetype("arial.ttf", 24)
     except IOError:
         font_large = ImageFont.load_default()
         font_small = ImageFont.load_default()
 
-    # Define text and colors
-    name_text = f"{fname} {lname}"
-    company_text = company
+    # Define colors
     text_color = (0, 0, 0)  # Black
 
-    # Get coordinates from settings
+    # Get coordinates from settings or default if missing
     fname_x = int(get_setting("fname_x") or 10)
-    fname_y = int(get_setting("fname_y") or 10)
+    fname_y = int(get_setting("fname_y") or 60)
     lname_x = int(get_setting("lname_x") or 10)
-    lname_y = int(get_setting("lname_y") or 50)
+    lname_y = int(get_setting("lname_y") or 100)
     company_x = int(get_setting("company_x") or 10)
-    company_y = int(get_setting("company_y") or 100)
+    company_y = int(get_setting("company_y") or 140)
 
     # Draw the text on the badge
-    draw.text((fname_x, fname_y), name_text, fill=text_color, font=font_large)
-    draw.text((company_x, company_y), company_text, fill=text_color, font=font_small)
-
-    # Save the image to an in-memory file and return it
+    draw.text((fname_x, fname_y), fname, fill=text_color, font=font_large)
+    draw.text((lname_x, lname_y), lname, fill=text_color, font=font_large)
+    draw.text((company_x, company_y), company, fill=text_color, font=font_small)
+    badge.show()
+    # Save the image to an in-memory file
     image_io = io.BytesIO()
     badge.save(image_io, 'PNG')
     image_io.seek(0)
-    return image_io  # Return as an in-memory file
+
+    # Return the generated image file object
+    return image_io
 
 
 
@@ -117,17 +123,13 @@ def download_event_attendees(event_id):
     if not event:
         return "Event not found", 404
 
-    # Fetch the attendees through the association table
+    # Fetch attendees for this event
     attendees = (Person
                  .select()
                  .join(PersonEvent)
                  .where(PersonEvent.event == event_id))
 
-    # Debugging print statements
-    print(f"Event: {event.name}")
-    print(f"Number of Attendees: {attendees.count()}")
-    
-    # Generate CSV data
+    # Generate CSV data in memory
     def generate():
         data = io.StringIO()
         writer = csv.writer(data)
@@ -138,14 +140,14 @@ def download_event_attendees(event_id):
         data.seek(0)
         data.truncate(0)
         
-        # Write the attendee rows
+        # Write each attendee row
         for person in attendees:
             writer.writerow([person.fname, person.lname, person.company, person.contact])
             yield data.getvalue()
             data.seek(0)
             data.truncate(0)
 
-    # Return the CSV as a response
+    # Return the CSV as a downloadable response
     response = Response(generate(), mimetype='text/csv')
     response.headers.set("Content-Disposition", "attachment", filename=f"{event.name}_attendees.csv")
     return response
