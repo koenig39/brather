@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Events List{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold mb-6">Events List</h1>
+<table class="min-w-full bg-gray-800 text-gray-100">
+    <thead>
+        <tr>
+            <th class="px-4 py-2 border-b border-gray-700">Event ID</th>
+            <th class="px-4 py-2 border-b border-gray-700">Name</th>
+            <th class="px-4 py-2 border-b border-gray-700">Description</th>
+            <th class="px-4 py-2 border-b border-gray-700">Date</th>
+            <th class="px-4 py-2 border-b border-gray-700">Active</th>
+            <th class="px-4 py-2 border-b border-gray-700">Registrations</th>
+            <th class="px-4 py-2 border-b border-gray-700">Activate</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for event in events %}
+            <tr>
+                <td class="border-t border-gray-700 px-4 py-2">{{ event.id }}</td>
+                <td class="border-t border-gray-700 px-4 py-2">
+                    <a href="{{ url_for('event_detail', event_id=event.id) }}" class="text-blue-400 hover:text-blue-600">
+                        {{ event.name }}
+                    </a>
+                </td>
+                <td class="border-t border-gray-700 px-4 py-2">{{ event.descr }}</td>
+                <td class="border-t border-gray-700 px-4 py-2">{{ event.date.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td class="border-t border-gray-700 px-4 py-2">
+                    {% if event.active %}
+                        <span class="text-green-500">Active</span>
+                    {% else %}
+                        <span class="text-gray-400">Inactive</span>
+                    {% endif %}
+                </td>
+                <td class="border-t border-gray-700 px-4 py-2">{{ event.registration_count }}</td>
+                <td class="border-t border-gray-700 px-4 py-2">
+                    {% if not event.active %}
+                        <a href="{{ url_for('activate_event', event_id=event.id) }}" class="text-blue-400 hover:text-blue-600">
+                            Activate
+                        </a>
+                    {% else %}
+                        <span class="text-green-500">Active</span>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

@@ -1,84 +1,156 @@
-from flask import Flask, render_template, request, redirect
-import csv
-from PIL import Image, ImageDraw, ImageFont
+from flask import Flask, render_template, request, redirect, url_for, send_file, flash
+from peewee import *
 from datetime import datetime
-from flask_cors import CORS  # Import CORS
-import subprocess
+import subprocess, os
 
 app = Flask(__name__)
-CORS(app)
+app.secret_key = os.urandom(24)  # Generates a random 24-byte key
 
-# Function to generate badge with user data
-def getBadge(fname, lname, cname):
-    # Create a new image with a white background
-    height = 696
-    width = 1109
-    background_color = (255, 255, 255)  # white color
-    background = Image.new('RGB', (width, height), background_color)
+# Database setup
+database_name = "database.db"
+sqlite_db = SqliteDatabase(database_name, pragmas={'journal_mode': 'wal'})
 
-    # Open and resize the logo image to overlay as background
-    try:
-        background_image = Image.open('./t3.bmp')  # Logo should be in the project folder
-        # background_image = background_image.resize((400, 400))
-    except IOError:
-        return "Error: Logo file not found!"
+class BaseModel(Model):
+    class Meta:
+        database = sqlite_db
 
-    # Paste the logo onto the new image
-    background.paste(background_image, (0, 0))
+class Person(BaseModel):
+    id = AutoField()
+    fname = CharField()
+    lname = CharField()
+    company = CharField()
+    contact = CharField()
 
-    # Add text (first name, last name, company) to the image
-    draw = ImageDraw.Draw(background)
-    
-    left_margin = 450
-    
-    # Add fname
-    name_text = f"{fname}"
-    name_font = ImageFont.truetype("roboto.ttf", 96)  # Specify font and size
-    name_color = (0, 0, 0)  # black color
-    name_position = (left_margin-70, 65)  # Position for name text
+class Event(BaseModel):
+    id = AutoField()
+    name = CharField()
+    descr = TextField()
+    date = DateTimeField()
+    active = IntegerField(default=0)  # 1 for active, 0 for inactive
+
+    @classmethod
+    def set_active_event(cls, event_id):
+        cls.update(active=0).execute()
+        cls.update(active=1).where(cls.id == event_id).execute()
+
+class PersonEvent(BaseModel):
+    person = ForeignKeyField(Person, backref='events')
+    event = ForeignKeyField(Event, backref='attendees')
+
+    class Meta:
+        database = sqlite_db
+        primary_key = CompositeKey('person', 'event')
+
+sqlite_db.connect()
+sqlite_db.create_tables([Person, Event, PersonEvent])
+
+
+from PIL import Image, ImageDraw, ImageFont
+
+def create_conference_badge(fname, lname, company):
+    # Load the original template image and scale it to full size
+    original_template = Image.open('template_badge.bmp')  # Replace with your actual template file path
+    width, height = original_template.size
+    badge = original_template.resize((width, height))
+
+    # Set text properties
+    draw = ImageDraw.Draw(badge)
+
+    # Define the font and size
+    name_font = ImageFont.truetype("arial.ttf", 72)  # Adjust path and size as needed
+    company_font = ImageFont.truetype("arial.ttf", 48)
+
+    # Define text content and positions
+    name_text = f"{fname} {lname}"
+    company_text = company
+
+    # Define positions for name and company text (adjust as needed)
+    name_position = (int(width * 0.3), int(height * 0.4))  # Approximate position for name
+    company_position = (int(width * 0.3), int(height * 0.6))  # Approximate position for company
+
+    # Define colors for the text
+    name_color = (0, 0, 0)  # Black
+    company_color = (80, 80, 80)  # Dark grey
+
+    # Draw the text on the badge
     draw.text(name_position, name_text, fill=name_color, font=name_font)
-    
-    # Add lname
-    name_text = f"{lname}"
-    name_font = ImageFont.truetype("roboto.ttf", 96)  # Specify font and size
-    name_color = (0, 0, 0)  # black color
-    name_position = (left_margin-70, 210)  # Position for name text
-    draw.text(name_position, name_text, fill=name_color, font=name_font)
-    
-    # Add company name
-    company_text = f"{cname}"
-    company_font = ImageFont.truetype("roboto.ttf", 45)  # Specify font and size
-    company_color = (111, 111, 111)  # grey color
-    company_position = (left_margin, 470)  # Position for company text
     draw.text(company_position, company_text, fill=company_color, font=company_font)
 
-    # Save the generated badge image
-    image_file = 'badge.png'
-    background.save(image_file)
-    
-    return image_file
+    # Save the badge to a file
+    badge_file = 'conference_badge.png'
+    badge.save(badge_file)
+    return badge_file
 
-# Function to send the generated image to the printer
-def sendToPrint(image_file):
-    # Define the print command using subprocess
-    ip1='192.168.24.241'
-    command = f"brother_ql -p tcp://{ip1} -m QL-820NWB print -l 62x100 {image_file}"
+
+@app.route('/activate_event/<int:event_id>')
+def activate_event(event_id):
+    # Set all events to inactive
+    Event.update(active=0).execute()
     
+    # Set the specified event to active
+    Event.update(active=1).where(Event.id == event_id).execute()
+    
+    flash("Event activated successfully.")
+    return redirect(url_for('events_list'))
+
+
+@app.route('/generate_badge/<int:person_id>')
+def generate_badge(person_id):
+    # Retrieve person details by ID
+    person = Person.get_or_none(Person.id == person_id)
+    if not person:
+        return "Person not found", 404
+
+    # Generate the badge
+    badge_file = create_conference_badge(person.fname, person.lname, person.company)
+
+    # Send the generated image as a downloadable file
+    return send_file(badge_file, as_attachment=True, download_name=f"{person.fname}_{person.lname}_badge.png")
+
+
+
+
+
+@app.route('/print_badge/<int:person_id>')
+def print_badge(person_id):
+    # Retrieve person details by ID
+    person = Person.get_or_none(Person.id == person_id)
+    if not person:
+        return "Person not found", 404
+
+    # Generate the badge
+    badge_file = create_conference_badge(person.fname, person.lname, person.company)
+
+    # Define the print command
+    command = f"brother_ql -p tcp://10.4.6.76 -m QL-820NWB print -l 62x100 {badge_file}"
+    
+    # Execute the command in the console
     try:
-        # Execute the print command
         # subprocess.run(command, shell=True, check=True)
-        return "Print command executed successfully."
+        flash("Print command executed successfully.")
     except subprocess.CalledProcessError as e:
-        return f"Error: Failed to execute print command. {e}"
+        flash(f"An error occurred: {e}")
+    
+    # Redirect back to the event details page
+    return redirect(url_for('event_detail', event_id=person.events[0].event.id))
 
-# Route for the form page
-@app.route('/')
-def index():
-    response = app.response_class()
-    response.headers.set("ngrok-skip-browser-warning", "true")
-    return render_template('form.html'), 200, response.headers
 
-# Route to handle form submission and print the badge
+@app.route('/register')
+def register():
+    return render_template('register.html')
+
+@app.route('/events_list')
+def events_list():
+    # Retrieve all events ordered by event ID and date with count of registered persons
+    events = (
+        Event
+        .select(Event, fn.COUNT(PersonEvent.person).alias('registration_count'))
+        .join(PersonEvent, JOIN.LEFT_OUTER, on=(Event.id == PersonEvent.event))
+        .group_by(Event)
+        .order_by(Event.id, Event.date.desc())
+    )
+    return render_template('events_list.html', events=events)
+
 @app.route('/submit', methods=['POST'])
 def submit():
     if request.method == 'POST':
@@ -87,27 +159,129 @@ def submit():
         lname = request.form['lname']
         contact = request.form['contact']
         company = request.form['company']
+        
+        # Create or get person record
+        person, created = Person.get_or_create(fname=fname, lname=lname, contact=contact, company=company)
+        
+        # Retrieve the active event
+        active_event = Event.get_or_none(Event.active == 1)
+        
+        # Ensure there's an active event before proceeding
+        if active_event:
+            # Register the person to the active event
+            PersonEvent.get_or_create(person=person, event=active_event)
+            
+            # Optional: Badge generation logic
+            badge_text = f"Name: {person.fname} {person.lname}\nCompany: {person.company}\nContact: {person.contact}\nEvent: {active_event.name}"
+            print(badge_text)  # Replace with actual badge generation
 
-        # Save data to CSV
-        with open('data.csv', mode='a', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow([fname, lname, company, contact, 0])
-
-        # Generate the badge image
-        image_file = getBadge(fname, lname, company)
-
-        # If badge generation was successful, send it to print
-        if image_file:
-            print_status = sendToPrint("./badge.png")
-            print(f"f-{fname}")
-            print(f"l-{lname}")
-            print(f"c-{company}")
-            print(f"con-{contact}")
-            print("YES!!!!!!!!!!!!!!!!=========>")
+            # Redirect to the event detail page with the active event's ID
+            return redirect(url_for('event_detail', event_id=active_event.id))
         else:
-            print_status = "Error: Badge generation failed."
+            return "No active event to register for", 400  # Error response if no active event exists
 
-        return redirect('/')
+
+@app.route('/person/<int:person_id>')
+def person_detail(person_id):
+    person = Person.get_or_none(Person.id == person_id)
+    if person:
+        events = person.events
+        return render_template('person_detail.html', person=person, events=events)
+    else:
+        return "Person not found", 404
+    
+
+@app.route('/event/create', methods=['GET', 'POST'])
+def create_event():
+    if request.method == 'POST':
+        name = request.form['name']
+        descr = request.form['descr']
+        date_str = request.form['date']
+        date = datetime.strptime(date_str, '%Y-%m-%dT%H:%M')  # Parse the date string to a datetime object
+        active = int(request.form.get('active', 0))
+
+        new_event = Event.create(name=name, descr=descr, date=date, active=0)
+        
+        if active == 1:
+            Event.set_active_event(new_event.id)
+        
+        return redirect(url_for('events_list'))
+    
+    return render_template('event_create.html')
+
+
+@app.route('/persons')
+def persons_list():
+    # Query to get all persons and their associated events
+    persons_with_events = {}
+
+    persons = (
+        Person
+        .select(Person, Event)
+        .join(PersonEvent, on=(Person.id == PersonEvent.person))
+        .join(Event, on=(PersonEvent.event == Event.id))
+        .order_by(Person.fname, Person.lname)
+    )
+
+    # Populate the dictionary by grouping persons by fname and lname
+    for person in persons:
+        name_key = (person.fname, person.lname)  # Grouping key
+
+        # Initialize the entry if not exists
+        if name_key not in persons_with_events:
+            persons_with_events[name_key] = {
+                "person": person,
+                "events": []
+            }
+
+        # Append the event to the person's events list
+        persons_with_events[name_key]["events"].append(person.events.get().event)
+
+    return render_template('persons_list.html', persons_with_events=persons_with_events)
+
+
+
+
+@app.route('/event/<int:event_id>')
+def event_detail(event_id):
+    # Retrieve the event by its ID
+    event = Event.get_or_none(Event.id == event_id)
+    
+    if event:
+        # Get all attendees for this event, ordered by fname and lname
+        attendees = (
+            Person
+            .select()
+            .join(PersonEvent, on=(Person.id == PersonEvent.person))
+            .where(PersonEvent.event == event)
+            .order_by(Person.fname.asc(), Person.lname.asc())
+        )
+        return render_template('event_detail.html', event=event, attendees=attendees)
+    else:
+        return "Event not found", 404
+
+
+
+
+@app.route('/reset')
+def reset():
+    # List of all models
+    models = [Person, Event, PersonEvent]
+
+    # Drop all tables
+    sqlite_db.connect()
+    sqlite_db.drop_tables(models)
+
+    # Recreate all tables
+    sqlite_db.create_tables(models)
+
+
+
+
+@app.teardown_appcontext
+def close_db(exception):
+    if not sqlite_db.is_closed():
+        sqlite_db.close()
 
 if __name__ == '__main__':
     app.run(debug=True)

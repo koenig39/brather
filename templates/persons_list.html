@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Persons List{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold mb-6">Persons and Their Registered Events</h1>
+<table class="min-w-full bg-gray-800 text-gray-100">
+    <thead>
+        <tr>
+            <th class="px-4 py-2 border-b border-gray-700">Name</th>
+            <th class="px-4 py-2 border-b border-gray-700">Company</th>
+            <th class="px-4 py-2 border-b border-gray-700">Contact</th>
+            <th class="px-4 py-2 border-b border-gray-700">Registered Events</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for name_key, data in persons_with_events.items() %}
+            <tr>
+                <td class="border-t border-gray-700 px-4 py-2">{{ data.person.fname }} {{ data.person.lname }}</td>
+                <td class="border-t border-gray-700 px-4 py-2">{{ data.person.company }}</td>
+                <td class="border-t border-gray-700 px-4 py-2">{{ data.person.contact }}</td>
+                <td class="border-t border-gray-700 px-4 py-2">
+                    <ul>
+                        {% for event in data.events %}
+                            <li>{{ event.name }} on {{ event.date.strftime('%Y-%m-%d %H:%M') }}</li>
+                        {% endfor %}
+                    </ul>
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

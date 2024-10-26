@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Create Event{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold mb-6">Create Event</h1>
+<form action="{{ url_for('create_event') }}" method="POST" class="space-y-4">
+    <div>
+        <label class="block mb-1">Event Name:</label>
+        <input type="text" name="name" required class="w-full p-2 bg-gray-800 text-gray-100 border border-gray-700 rounded">
+    </div>
+    <div>
+        <label class="block mb-1">Description:</label>
+        <textarea name="descr" required class="w-full p-2 bg-gray-800 text-gray-100 border border-gray-700 rounded"></textarea>
+    </div>
+    <div>
+        <label class="block mb-1">Date:</label>
+        <input type="datetime-local" name="date" required class="w-full p-2 bg-gray-800 text-gray-100 border border-gray-700 rounded">
+    </div>
+    <div class="flex items-center">
+        <input type="checkbox" name="active" value="1" class="w-5 h-5 bg-gray-800 text-blue-500 border-gray-700 rounded">
+        <label class="ml-2">Set as Active Event</label>
+    </div>
+    <button type="submit" class="w-full p-2 bg-blue-600 hover:bg-blue-700 text-white rounded mt-4">Create Event</button>
+</form>
+{% endblock %}

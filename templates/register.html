@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <title>Register Person</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-900 text-gray-100 p-8">
+    <h1 class="text-3xl font-bold mb-6">Register for Badge</h1>
+    <form action="{{ url_for('submit') }}" method="POST" class="space-y-4">
+        <div>
+            <label class="block mb-1">First Name:</label>
+            <input type="text" name="fname" class="w-full p-2 bg-gray-800 text-gray-100 border border-gray-700 rounded">
+        </div>
+        
+        <div>
+            <label class="block mb-1">Last Name:</label>
+            <input type="text" name="lname" class="w-full p-2 bg-gray-800 text-gray-100 border border-gray-700 rounded">
+        </div>
+        
+        <div>
+            <label class="block mb-1">Contact:</label>
+            <input type="text" name="contact" class="w-full p-2 bg-gray-800 text-gray-100 border border-gray-700 rounded">
+        </div>
+        
+        <div>
+            <label class="block mb-1">Company:</label>
+            <input type="text" name="company" class="w-full p-2 bg-gray-800 text-gray-100 border border-gray-700 rounded">
+        </div>
+        
+        <button type="submit" class="w-full p-2 bg-blue-600 hover:bg-blue-700 text-white rounded mt-4">
+            Generate Badge
+        </button>
+    </form>
+</body>
+</html>

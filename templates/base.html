@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <title>{% block title %}My App{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-900 text-gray-100 p-8">
+    <nav class="mb-8">
+        <ul class="flex space-x-4">
+            <li><a href="{{ url_for('events_list') }}" class="text-blue-400 hover:text-blue-600">Events List</a></li>
+            <li><a href="{{ url_for('create_event') }}" class="text-blue-400 hover:text-blue-600">Create Event</a></li>
+            <li><a href="{{ url_for('register') }}" class="text-blue-400 hover:text-blue-600">Register Person</a></li>
+            <li><a href="{{ url_for('persons_list') }}" class="text-blue-400 hover:text-blue-600">Persons List</a></li>
+        </ul>
+    </nav>
+
+    <!-- Flash Messages Section -->
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="mb-4">
+                {% for message in messages %}
+                    <div class="bg-green-600 text-white px-4 py-2 rounded mb-2">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <div class="container mx-auto">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

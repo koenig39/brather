@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Event Details{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold mb-4">{{ event.name }}</h1>
+<p class="mb-2"><strong>Description:</strong> {{ event.descr }}</p>
+<p class="mb-8"><strong>Date:</strong> {{ event.date.strftime('%Y-%m-%d %H:%M') }}</p>
+
+<h2 class="text-2xl font-semibold mb-4">Registered Attendees</h2>
+{% if attendees %}
+    <table class="min-w-full bg-gray-800 text-gray-100">
+        <thead>
+            <tr>
+                <th class="px-4 py-2 border-b border-gray-700">First Name</th>
+                <th class="px-4 py-2 border-b border-gray-700">Last Name</th>
+                <th class="px-4 py-2 border-b border-gray-700">Company</th>
+                <th class="px-4 py-2 border-b border-gray-700">Contact</th>
+                <th class="px-4 py-2 border-b border-gray-700">Badge</th>
+                <th class="px-4 py-2 border-b border-gray-700">Print Badge</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for person in attendees %}
+                <tr>
+                    <td class="border-t border-gray-700 px-4 py-2">{{ person.fname }}</td>
+                    <td class="border-t border-gray-700 px-4 py-2">{{ person.lname }}</td>
+                    <td class="border-t border-gray-700 px-4 py-2">{{ person.company }}</td>
+                    <td class="border-t border-gray-700 px-4 py-2">{{ person.contact }}</td>
+                    <td class="border-t border-gray-700 px-4 py-2">
+                        <a href="{{ url_for('generate_badge', person_id=person.id) }}" class="text-blue-400 hover:text-blue-600">
+                            Generate Badge
+                        </a>
+                    </td>
+                    <td class="border-t border-gray-700 px-4 py-2">
+                        <a href="{{ url_for('print_badge', person_id=person.id) }}" class="text-blue-400 hover:text-blue-600">
+                            Print Badge
+                        </a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p>No attendees registered for this event.</p>
+{% endif %}
+
+<a href="{{ url_for('events_list') }}" class="text-blue-400 hover:text-blue-600 mt-6 block">Back to Events</a>
+{% endblock %}
